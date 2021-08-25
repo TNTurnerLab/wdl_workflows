@@ -1,0 +1,9 @@
+version: 1.2
+workflows:
+   - name: QuicKmer2
+     subclass: WDL
+     publish: True
+     primaryDescriptorPath: https://github.com/TNTurnerLab/wdl_workflows/blob/main/workflows/QuicKmer2.wdl
+     authors:
+       - name: Jeffrey Ng
+     
