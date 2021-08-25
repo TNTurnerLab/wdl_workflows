@@ -3,7 +3,7 @@ workflows:
    - name: QuicKmer2
      subclass: WDL
      publish: True
-     primaryDescriptorPath: /blob/main/workflows/QuicKmer2.wdl
+     primaryDescriptorPath: /workflows/QuicKmer2.wdl
      authors:
        - name: Jeffrey Ng
      
