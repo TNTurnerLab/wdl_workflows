@@ -1,10 +1,6 @@
 version: 1.2
 workflows:
    - name: QuicKmer2
-     subclass: WDL
-     publish: True
+     subclass: wdl
      primaryDescriptorPath: /workflows/QuicKmer2.wdl
      testParameterFiles:
-     authors:
-       - name: Jeffrey Ng
-     
