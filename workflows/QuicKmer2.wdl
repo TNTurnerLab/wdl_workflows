@@ -64,7 +64,7 @@ task quicKmer2{
         docker: "jng2/testme:qm_CN"
         memory: "64G"
         cpu: "6"
-        disks: "local-disk "+ disk_size+" HDD"
+        disks: "local-disk "+ disk_size+" SSD"
         
         
     }
