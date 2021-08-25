@@ -1,6 +1,6 @@
 version: 1.2
 workflows:
-   - name: QuicKmer2
-     subclass: wdl
-     primaryDescriptorPath: /workflows/QuicKmer2.wdl
-     testParameterFiles:
+- name: QuicKmer2
+  subclass: wdl
+  primaryDescriptorPath: /workflows/QuicKmer2.wdl
+  testParameterFiles:
