@@ -2,4 +2,10 @@
 
  Maintained by Jeffrey Ng
  
- Everything here is still under development, use at own risk
+ #### Fully Developed:
+ 
+ * ACES
+ 
+  #### Under Development:
+ 
+  * QuicKmer2
