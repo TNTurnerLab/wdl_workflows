@@ -67,6 +67,10 @@ workflow aces {
 
            
     }
+    meta {
+    author: "Jeffrey Ng"
+    email: "jeffrey.ng@wustl.edu"
+    description: "## ACES \n Tychele Turner Lab, Washington University in St. Louis Medical School. \n This is the ACES workflow. Orginally written by Elvisa Mehinovic, modified by Jeffrey Ng \n\n For more information, please visit our wiki:  https://github.com/TNTurnerLab/ACES/wiki/Pipeline-Background"
 }
 
 task grabinput{
