@@ -4,7 +4,7 @@ workflows:
   subclass: wdl
   primaryDescriptorPath: /workflows/QuicKmer2.wdl
   testParameterFiles:
-- name: ACES
+- name: ACES_workflow
   subclass: wdl
   primaryDescriptorPath: /workflows/small_aces.wdl
   testParameterFiles:
