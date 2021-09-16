@@ -136,7 +136,7 @@ workflow aces {
             thresh_out=findThresh.out_small,
             thresh_query=findThresh.small_query,
             msa_ram=msa_ram,
-            msa_threads=msa_threads
+            msa_threads=msa_threads,
 	    num_bootstraps=num_bootstraps,
             raxmlHPC_model_type=raxmlHPC_model_type
            
