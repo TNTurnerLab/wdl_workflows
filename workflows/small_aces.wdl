@@ -11,7 +11,43 @@ workflow aces {
     Int? msa_threads
     Int? msa_ram
     File datadb
-
+    String? query_loc
+    Int? culling_limit
+    Float? best_hit_overhang
+    Float? best_hit_score_edge
+    Int? dbsize
+    Int? searchsp
+    Array[File]? filtering_db
+    String? filtering_db_path
+    File? import_search_strategy
+    String? export_search_strategy
+    String? parse_deflines
+    Int? num_threads_blast
+    Int? mt_mode
+    String? show_gis
+    Int? max_hsps
+    Int? blast_cpu
+    Int? blast_ram
+    Int? word_size
+    Int? gapopen
+    Int? gapextend
+    Int? reward
+    Int? penalty
+    String? strand
+    String? dust
+    String? soft_masking
+    String? lcase_masking
+    Int? perc_identity
+    String? template_type
+    Int? template_length
+    Int? xdrop_ungap
+    Int? xdrop_gap
+    Int? xdrop_gap_final
+    Int? min_raw_gapped_score
+    String? ungapped 
+    Int? window_size
+    String? raxmlHPC_model_type
+    Int? num_bootstraps
     }
     Array[String] samples = read_lines(samples_file)
     #Runs the BLASTn in parallel
@@ -34,7 +70,44 @@ workflow aces {
             query=query,
             eval=eval,
             sample=sam,
-            databaseFiles=databaseFiles
+            databaseFiles=databaseFiles,
+            query_loc= query_loc,
+            show_gis=show_gis,
+            culling_limit= culling_limit,
+            best_hit_overhang = best_hit_overhang,
+            best_hit_score_edge= best_hit_score_edge,
+            dbsize= dbsize,
+            searchsp= searchsp,
+            filtering_db=filtering_db,
+            filtering_db_path=filtering_db_path,
+            import_search_strategy = import_search_strategy,
+            export_search_strategy = export_search_strategy,
+            parse_deflines = parse_deflines,
+            num_threads_blast = num_threads_blast,
+            mt_mode = mt_mode,
+            max_hsps=max_hsps,
+            blast_cpu=blast_cpu,
+            blast_ram=blast_ram,
+            word_size= word_size,
+            gapopen= gapopen,
+            gapextend =gapextend,
+            reward= reward,
+            penalty= penalty,
+            strand= strand,
+            dust= dust,
+            soft_masking= soft_masking,
+            lcase_masking= lcase_masking,
+            perc_identity= perc_identity,
+            template_type= template_type,
+            template_length= template_length,
+            xdrop_ungap= xdrop_ungap,
+            xdrop_gap= xdrop_gap,
+            xdrop_gap_final= xdrop_gap_final,
+            min_raw_gapped_score= min_raw_gapped_score,
+            ungapped= ungapped,
+            window_size= window_size
+
+
         }
         
     }
@@ -64,13 +137,9 @@ workflow aces {
             thresh_query=findThresh.small_query,
             msa_ram=msa_ram,
             msa_threads=msa_threads
-
+	    num_bootstraps=num_bootstraps,
+            raxmlHPC_model_type=raxmlHPC_model_type
            
-    }
-    meta {
-    author: "Jeffrey Ng"
-    email: "jeffrey.ng@wustl.edu"
-    description: "## ACES \n Tychele Turner Lab, Washington University in St. Louis Medical School. \n This is the ACES workflow. Orginally written by Elvisa Mehinovic, modified by Jeffrey Ng \n\n For more information, please visit our wiki:  https://github.com/TNTurnerLab/ACES/wiki/Pipeline-Background"
     }
 }
 
@@ -89,7 +158,7 @@ task grabinput{
         File databaseFile="~{sample}.files.txt"
     }
     runtime {
-        docker: "ncbi/blast:latest"
+        docker: "tnturnerlab/vgp_ens_pipeline:wdl"
         memory: "1GB"
         cpu: 1
         disks: "local-disk 1 SSD"
@@ -97,31 +166,71 @@ task grabinput{
 }
 task BLAST {
     input {
-        String pathToInput
+       String pathToInput
         String sample
         Int? max_num_seq
         File query
         Float eval
         Array[File] databaseFiles
+        String? query_loc
+        Int? culling_limit
+        Float? best_hit_overhang
+        Float? best_hit_score_edge
+        Int? dbsize
+        Int? searchsp
+        File? import_search_strategy
+        String? export_search_strategy
+        String? parse_deflines
+        Int? num_threads_blast
+        Int? mt_mode
+        String? show_gis
+        Int? max_hsps
+        Int? blast_cpu
+        Int? blast_ram 
+        Int? word_size
+        Int? gapopen
+        Int? gapextend
+        Int? reward
+        Int? penalty
+        String? strand
+        String? dust
+        String? soft_masking
+        String? lcase_masking
+        Int? perc_identity
+        String? template_type
+        Int? template_length
+        Int? xdrop_ungap
+        Int? xdrop_gap
+        Int? xdrop_gap_final
+        Int? min_raw_gapped_score
+        String? ungapped 
+        Int? window_size    
+        Array[File]? filtering_db
+        String? filtering_db_path
+
          
     }
 	Int disk_size = ceil(size(databaseFiles,"GB")+5)
     String pathway=sub(pathToInput,'gs://','')+'/'+sample
     Int bout=select_first([max_num_seq, 1])
+    Int num_t=select_first([blast_cpu, 1])
+    Int num_m=select_first([blast_ram,16])
     command <<<
     echo ~{pathway}
     export PATH=/blast/bin:$PATH
-    blastn -task dc-megablast -evalue ~{eval} -max_target_seqs ~{bout} -query ~{query} -db ~{pathway} -max_hsps ~{bout} -outfmt '6 sseqid sseq evalue' > ~{sample}_blast_results.txt
+    blastn -task dc-megablast -evalue ~{eval} -max_target_seqs ~{bout} -query ~{query} -db ~{pathway} ~{"-max_hsps "+max_hsps} ~{"-"+show_gis} ~{"-query_loc "+query_loc}  ~{"-culling_limit "+culling_limit} ~{"-best_hit_overhang "+best_hit_overhang} ~{"-best_hit_score_edge "+best_hit_score_edge} ~{"-dbsize "+dbsize} ~{"-import_search_strategy "+import_search_strategy}  ~{"-searchsp "+ searchsp} ~{"-"+ parse_deflines} ~{"-export_search_strategy "+export_search_strategy} ~{"-num_threads "+num_threads_blast} ~{"-mt_mode "+mt_mode} ~{"-word_size "+word_size}  ~{"-gapopen "+gapopen} ~{"-gapextend "+gapextend} ~{"-reward "+reward} ~{"-penalty "+penalty} ~{"-strand "+strand} ~{"-dust '"+dust+"'"}  ~{"-soft_masking "+soft_masking} ~{"-"+lcase_masking} ~{"-perc_identity "+perc_identity} ~{"-template_type "+template_type} ~{"-template_length "+template_length} ~{"-xdrop_ungap "+xdrop_ungap} ~{"-xdrop_gap_final "+xdrop_gap_final}    ~{"-min_raw_gapped_score "+min_raw_gapped_score}  ~{"-"+ungapped} ~{"-window_size "+window_size} ~{"-xdrop_gap "+xdrop_gap} ~{"-filtering_db "+filtering_db_path} -outfmt '6 sseqid sseq evalue' > ~{sample}_blast_results.txt
     cat ~{sample}_blast_results.txt | awk '{printf ">~{sample}_eval%s\n%s\n",$3,$2}' > ~{sample}_parsed.fa
     >>>
     output {
         File out="~{sample}_blast_results.txt"
         File parsed="~{sample}_parsed.fa"
+        Array[File] export=glob("{~{export_search_strategy}")
+    
     }
     runtime {
         docker: "ncbi/blast:latest"
-        memory: "16GB"
-        cpu: 1
+        memory: num_m+"GB"
+        cpu: num_t
         disks: "local-disk "+disk_size+" SSD"
     }
 
@@ -148,7 +257,7 @@ task findThresh {
         File key="Keydoc.txt"
     }
     runtime {
-        docker: "jng2/testme:aces"
+        docker: "tnturnerlab/vgp_ens_pipeline:wdl"
         memory: "2GB"
         cpu: 1
         disks:  "local-disk "+disk_size+" SSD"
@@ -172,7 +281,7 @@ task generateReport {
         File out="Files_Generated_Report.txt"
     }
     runtime {
-        docker: "jng2/testme:aces"
+        docker: "tnturnerlab/vgp_ens_pipeline:wdl"
         memory: "2GB"
         cpu: 1
         disks: "local-disk "+disk_size+" SSD"
@@ -184,7 +293,8 @@ task MSA {
     input {
         File thresh_out
         File thresh_query
-
+        String? raxmlHPC_model_type
+        Int? num_bootstraps
         Int? msa_threads
         Int? msa_ram
         
@@ -193,6 +303,8 @@ task MSA {
     Int disk_size = ceil(size(thresh_out,"GB")+size(thresh_query,"GB")+10)
     Int num_t=select_first([msa_threads, 4])
     Int num_m=select_first([msa_ram,16])
+    String model=select_first([raxmlHPC_model_type,'GTRGAMMA'])
+    Int num_boot=select_first([num_bootstraps,100])
     
     command <<<
     export PATH=/opt/conda/bin:$PATH
@@ -204,7 +316,7 @@ task MSA {
     muscle -in Multi_Seq_Align.aln -phyiout Phy_Align.phy
     python /ACES/ACES_Pipeline/msa_to_gfa/msa_to_gfa/main.py -f Multi_Seq_Align.aln -o MSA2GFA.gfa --log MSA2GFA.log
     
-    raxmlHPC-PTHREADS-SSE3 -m GTRGAMMA -f a -x 100 -p 100 -s Phy_Align.phy -# 100 -n RAXML_output -T ~{num_t}  
+    raxmlHPC-PTHREADS-SSE3 -m ~{model} -f a -x 100 -p 100 -s Phy_Align.phy -# ~{num_boot} -n RAXML_output -T ~{num_t}  
 
     >>>
     output {
@@ -218,7 +330,7 @@ task MSA {
         File info="RAxML_info.RAXML_output"
     }
     runtime {
-        docker: "jng2/testme:aces"
+        docker: "tnturnerlab/vgp_ens_pipeline:wdl"
         memory: num_m+"GB"
         cpu: num_t
         disks: "local-disk "+disk_size+" SSD"
