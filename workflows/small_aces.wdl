@@ -3,6 +3,7 @@ version 1.0
 workflow aces {
     input {
     String pathToInput
+    Int? preempt
     Int?  max_num_seq
     File query
     File samples_file
@@ -26,6 +27,7 @@ workflow aces {
     Int? mt_mode
     String? show_gis
     Int? max_hsps
+    Int? blast_cpu
     Int? blast_ram
     Int? word_size
     Int? gapopen
@@ -45,8 +47,6 @@ workflow aces {
     Int? min_raw_gapped_score
     String? ungapped 
     Int? window_size
-    String? raxmlHPC_model_type
-    Int? num_bootstraps
     }
     Array[String] samples = read_lines(samples_file)
     #Runs the BLASTn in parallel
@@ -55,7 +55,8 @@ workflow aces {
             input:
                 pathToInput=pathToInput,
                 sample=sam,
-                datadb=datadb
+                datadb=datadb,
+                preempt=preempt
                 
         }
         
@@ -69,6 +70,7 @@ workflow aces {
             query=query,
             eval=eval,
             sample=sam,
+            preempt=preempt,
             databaseFiles=databaseFiles,
             query_loc= query_loc,
             show_gis=show_gis,
@@ -85,6 +87,7 @@ workflow aces {
             num_threads_blast = num_threads_blast,
             mt_mode = mt_mode,
             max_hsps=max_hsps,
+            blast_cpu=blast_cpu,
             blast_ram=blast_ram,
             word_size= word_size,
             gapopen= gapopen,
@@ -117,6 +120,7 @@ workflow aces {
             parse_out=BLAST.parsed,
             threshold=threshold,
             eval=eval,
+            preempt=preempt,
             numBLASTOut=max_num_seq
     }        
     #Creates report document
@@ -125,6 +129,7 @@ workflow aces {
         	query=query,
             parse_out=BLAST.parsed,
             threshold=threshold,
+            preempt=preempt,
             eval=eval
     }
 
@@ -134,9 +139,8 @@ workflow aces {
             thresh_out=findThresh.out_small,
             thresh_query=findThresh.small_query,
             msa_ram=msa_ram,
-            msa_threads=msa_threads,
-            num_bootstraps=num_bootstraps,
-            raxmlHPC_model_type=raxmlHPC_model_type
+            preempt=preempt,
+            msa_threads=msa_threads
 
            
     }
@@ -146,9 +150,10 @@ task grabinput{
     input {
         String pathToInput
         String sample
+        Int? preempt
         File datadb
     }
-    
+    Int pre =select_first([preempt, 0])
     command<<<
     
     grep ~{sample} ~{datadb} | awk '{printf "~{pathToInput}/%s\n",$1}' > ~{sample}.files.txt
@@ -160,6 +165,7 @@ task grabinput{
         docker: "tnturnerlab/vgp_ens_pipeline:wdl"
         memory: "1GB"
         cpu: 1
+        preemptible: pre
         disks: "local-disk 1 SSD"
     }
 }
@@ -167,6 +173,7 @@ task BLAST {
     input {
        String pathToInput
         String sample
+        Int? preempt
         Int? max_num_seq
         File query
         Float eval
@@ -184,6 +191,7 @@ task BLAST {
         Int? mt_mode
         String? show_gis
         Int? max_hsps
+        Int? blast_cpu
         Int? blast_ram 
         Int? word_size
         Int? gapopen
@@ -208,10 +216,11 @@ task BLAST {
 
          
     }
+    Int pre =select_first([preempt, 0])
 	Int disk_size = ceil(size(databaseFiles,"GB")+5)
     String pathway=sub(pathToInput,'gs://','')+'/'+sample
     Int bout=select_first([max_num_seq, 1])
-    Int num_t=select_first([num_threads_blast, 1])
+    Int num_t=select_first([blast_cpu, 1])
     Int num_m=select_first([blast_ram,16])
     command <<<
     echo ~{pathway}
@@ -229,6 +238,7 @@ task BLAST {
         docker: "ncbi/blast:latest"
         memory: num_m+"GB"
         cpu: num_t
+        preemptible: pre
         disks: "local-disk "+disk_size+" SSD"
     }
 
@@ -238,10 +248,12 @@ task findThresh {
         Array[File] parse_out
         Float threshold
         File query
+        Int? preempt
         Float eval
         Int? numBLASTOut
 
     }
+    Int pre =select_first([preempt, 0])
     Int bout=select_first([numBLASTOut, 1])
     Int disk_size = ceil(size(parse_out,"GB")+5)
     command <<<
@@ -258,6 +270,7 @@ task findThresh {
         docker: "tnturnerlab/vgp_ens_pipeline:wdl"
         memory: "2GB"
         cpu: 1
+        preemptible: pre
         disks:  "local-disk "+disk_size+" SSD"
     }
 }
@@ -266,10 +279,11 @@ task generateReport {
         Array[File] parse_out
         Float threshold
         File query
+        Int? preempt
         Float eval
     }
 
-   
+    Int pre =select_first([preempt, 0])
     Int disk_size = ceil(size(parse_out,"GB")+5)
     command <<<
     export PATH=/opt/conda/bin:$PATH
@@ -282,6 +296,7 @@ task generateReport {
         docker: "tnturnerlab/vgp_ens_pipeline:wdl"
         memory: "2GB"
         cpu: 1
+        preemptible: pre
         disks: "local-disk "+disk_size+" SSD"
     }
 
@@ -293,11 +308,12 @@ task MSA {
         File thresh_query
         String? raxmlHPC_model_type
         Int? num_bootstraps
+        Int? preempt
         Int? msa_threads
         Int? msa_ram
         
     }
-
+    Int pre =select_first([preempt, 0])
     Int disk_size = ceil(size(thresh_out,"GB")+size(thresh_query,"GB")+10)
     Int num_t=select_first([msa_threads, 4])
     Int num_m=select_first([msa_ram,16])
@@ -331,6 +347,7 @@ task MSA {
         docker: "tnturnerlab/vgp_ens_pipeline:wdl"
         memory: num_m+"GB"
         cpu: num_t
+        preemptible: pre
         disks: "local-disk "+disk_size+" SSD"
     }
 
